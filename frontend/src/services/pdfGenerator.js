@@ -17,12 +17,20 @@ const COR_LINHA    = hex('#cbd5e1');
 const COR_BRANCO   = rgb(1, 1, 1);
 
 // ── Sanitizador WinAnsi ────────────────────────────────────
+// A fonte Helvetica (StandardFonts) usa encoding WinAnsi (ISO-8859-1),
+// que suporta todos os caracteres latinos acentuados do português
+// (á é í ó ú â ê ô ã õ ç à etc.) — faixa 0x00–0xFF.
+// Por isso, NÃO removemos diacríticos; apenas descartamos o que
+// está fora da faixa Latin-1 (emojis, CJK, etc.).
 const sanitize = (str) =>
   String(str)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .normalize('NFC')                 // forma precomposta — acentos ficam juntos
     .replace(/[^\x00-\xFF]/g, (c) => {
-      const map = { '\u2014': '-', '\u2013': '-', '\u2192': '>', '\u00b7': '.', '\u00ba': 'o', '\u00aa': 'a', '\u2019': "'", '\u201c': '"', '\u201d': '"' };
+      const map = {
+        '\u2014': '-', '\u2013': '-', '\u2192': '>',
+        '\u00b7': '.', '\u00ba': 'o', '\u00aa': 'a',
+        '\u2019': "'", '\u201c': '"', '\u201d': '"',
+      };
       return map[c] || '?';
     });
 
@@ -68,23 +76,27 @@ export async function gerarPdfOS(state) {
     pg.drawRectangle({ x: 0, y: A4H - 4,  width: A4W, height: 4, color: COR_ACCENT });
     pg.drawRectangle({ x: 0, y: BANNER_Y, width: A4W, height: 4, color: COR_ACCENT });
 
-    // Logo
+    // Logo + nome da empresa lado a lado
+    let nomeX = ML; // X onde o nome da empresa começa
     if (logoImg) {
-      const maxW = 105, maxH = 50;
+      const maxW = 80, maxH = 50;
       const scale = Math.min(maxW / logoImg.width, maxH / logoImg.height);
       const lw = logoImg.width * scale, lh = logoImg.height * scale;
       pg.drawImage(logoImg, { x: ML, y: BANNER_Y + (BANNER_H - lh) / 2, width: lw, height: lh });
-    } else {
-      pg.drawText('EMPFREITAS', { x: ML, y: BANNER_Y + 28, size: 15, font: bold, color: COR_BRANCO });
+      nomeX = ML + lw + 8;
     }
 
-    // Título
-    pg.drawText('ORDEM DE SERVIÇO', { x: 175, y: BANNER_Y + 42, size: 16, font: bold, color: COR_BRANCO });
-    pg.drawText(sanitize(`${state.tipo_os}  .  ${state.tipo_manutencao}`), { x: 175, y: BANNER_Y + 22, size: 9, font: regular, color: COR_ACCENT });
+    // Nome da empresa (sempre ao lado da logo)
+    pg.drawText('EMPFREITAS', { x: nomeX, y: BANNER_Y + 42, size: 9, font: bold, color: COR_BRANCO });
+    pg.drawText('SOLU\u00c7\u00d5ES EM ELETR\u00d4NICA', { x: nomeX, y: BANNER_Y + 28, size: 6.5, font: regular, color: COR_ACCENT });
+
+    // Título da OS (centro do banner)
+    pg.drawText('ORDEM DE SERVI\u00c7O', { x: 252, y: BANNER_Y + 42, size: 13, font: bold, color: COR_BRANCO });
+    pg.drawText(sanitize(`${state.tipo_os}  .  ${state.tipo_manutencao}`), { x: 252, y: BANNER_Y + 23, size: 8, font: regular, color: COR_ACCENT });
 
     // Número e data (direita)
-    pg.drawText(sanitize(numOS), { x: 395, y: BANNER_Y + 42, size: 11, font: bold, color: COR_BRANCO });
-    pg.drawText(sanitize(`Data: ${dataOS}`), { x: 395, y: BANNER_Y + 24, size: 8, font: regular, color: COR_LINHA });
+    pg.drawText(sanitize(numOS), { x: 418, y: BANNER_Y + 42, size: 10, font: bold, color: COR_BRANCO });
+    pg.drawText(sanitize(`Data: ${dataOS}`), { x: 418, y: BANNER_Y + 25, size: 7.5, font: regular, color: COR_LINHA });
   }
 
   // Cabeçalho de continuação (páginas 2+)
@@ -94,14 +106,16 @@ export async function gerarPdfOS(state) {
   function desenharCabecalhoContinuacao(pg) {
     pg.drawRectangle({ x: 0, y: CONT_Y, width: A4W, height: CONT_H, color: COR_PRIMARIA });
     pg.drawRectangle({ x: 0, y: A4H - 3, width: A4W, height: 3, color: COR_ACCENT });
-    pg.drawText('EMPFREITAS', { x: ML, y: CONT_Y + 9, size: 9, font: bold, color: COR_BRANCO });
-    pg.drawText(sanitize(`OS ${numOS}  -  continuacao`), { x: 170, y: CONT_Y + 9, size: 8, font: regular, color: COR_LINHA });
-    pg.drawText(sanitize(`Pagina ${ctx.pageNum}`), { x: A4W - MR - 40, y: CONT_Y + 9, size: 8, font: regular, color: COR_LINHA });
+    pg.drawText('EMPFREITAS', { x: ML, y: CONT_Y + 14, size: 8, font: bold, color: COR_BRANCO });
+    pg.drawText('SOLU\u00c7\u00d5ES EM ELETR\u00d4NICA', { x: ML, y: CONT_Y + 5, size: 6, font: regular, color: COR_ACCENT });
+    pg.drawText(sanitize(`OS ${numOS}  -  continua\u00e7\u00e3o`), { x: 210, y: CONT_Y + 9, size: 8, font: regular, color: COR_LINHA });
+    pg.drawText(sanitize(`P\u00e1gina ${ctx.pageNum}`), { x: A4W - MR - 40, y: CONT_Y + 9, size: 8, font: regular, color: COR_LINHA });
   }
+
 
   // Rodapé de página (número)
   function desenharRodape(pg, num) {
-    pg.drawText(sanitize(`Pag. ${num}`), { x: A4W / 2 - 15, y: 20, size: 7, font: regular, color: COR_MUTED });
+    pg.drawText(sanitize(`P\u00e1g. ${num}`), { x: A4W / 2 - 15, y: 20, size: 7, font: regular, color: COR_MUTED });
   }
 
   // ── Nova página ───────────────────────────────────────────
@@ -182,7 +196,7 @@ export async function gerarPdfOS(state) {
   hrz(Y); Y -= 16;
 
   // Linha 1: Nome
-  td('Nome / Razao Social:', ML, Y, 8, bold, COR_MUTED);
+  td('Nome / Raz\u00e3o Social:', ML, Y, 8, bold, COR_MUTED);
   Y = wrap(state.cliente_nome || 'N/A', ML + 102, Y, 8, bold, COR_TEXTO, CW - 102);
   Y += 2; // Ajuste fino pois o wrap já desconta o LH inteiro
 
@@ -192,7 +206,7 @@ export async function gerarPdfOS(state) {
   Y -= 14;
 
   // Linha 3: Endereco
-  td('Endereco:', ML, Y, 8, bold, COR_MUTED);
+  td('Endere\u00e7o:', ML, Y, 8, bold, COR_MUTED);
   Y = wrap(state.cliente_endereco || 'N/A', ML + 52, Y, 8, regular, COR_TEXTO, CW - 52);
   Y -= 14;
 
@@ -203,15 +217,15 @@ export async function gerarPdfOS(state) {
 
   td('Modelo:', ML, Y, 8, bold, COR_MUTED);
   td(String(state.equipamento_modelo || 'N/A'), ML + 42, Y, 8, bold, COR_TEXTO);
-  td('Serie:', 210, Y, 8, bold, COR_MUTED);
+  td('S\u00e9rie:', 210, Y, 8, bold, COR_MUTED);
   td(String(state.equipamento_serie || 'N/A'), 240, Y, 8, bold, COR_TEXTO);
-  td('Horimetro:', 370, Y, 8, bold, COR_MUTED);
+  td('Hor\u00edmetro:', 370, Y, 8, bold, COR_MUTED);
   td(String(state.equipamento_horimetro || 'N/A'), 424, Y, 8, bold, COR_TEXTO);
   Y -= 16;
 
-  td('Inicio do Serv.:', ML, Y, 8, bold, COR_MUTED);
+  td('In\u00edcio do Serv.:', ML, Y, 8, bold, COR_MUTED);
   td(state.data_inicio_servico ? formatarDataHora(state.data_inicio_servico) : 'N/A', ML + 72, Y, 8, bold, COR_TEXTO);
-  td('Termino:', 280, Y, 8, bold, COR_MUTED);
+  td('T\u00e9rmino:', 280, Y, 8, bold, COR_MUTED);
   td(state.data_termino_servico ? formatarDataHora(state.data_termino_servico) : 'N/A', 320, Y, 8, bold, COR_TEXTO);
   Y -= 16;
 
@@ -221,7 +235,7 @@ export async function gerarPdfOS(state) {
   const kmPercorrido = odChegada > odSaida ? odChegada - odSaida : 0;
   if (odSaida > 0 || odChegada > 0) {
     td('Deslocamento:', ML, Y, 8, bold, COR_MUTED);
-    td(`Saida: ${odSaida} km  /  Chegada: ${odChegada} km  >  Percorrido: ${kmPercorrido} km`, ML + 72, Y, 8, bold, COR_TEXTO);
+    td(`Sa\u00edda: ${odSaida} km  /  Chegada: ${odChegada} km  >  Percorrido: ${kmPercorrido} km`, ML + 72, Y, 8, bold, COR_TEXTO);
     Y -= 16;
   }
   Y -= 10;
@@ -229,7 +243,7 @@ export async function gerarPdfOS(state) {
   // ── SERVIÇO ───────────────────────────────────────────────
   if (state.tipo_manutencao === 'CORRETIVA') {
     Y = garantirEspaco(Y, 50);
-    Y = secao('SERVICO EXECUTADO - Corretiva', Y);
+    Y = secao('SERVI\u00c7O EXECUTADO - Corretiva', Y);
     hrz(Y); Y -= 16;
 
     td('Problema Relatado:', ML, Y, 8, bold, COR_MUTED); Y -= 14;
@@ -237,20 +251,20 @@ export async function gerarPdfOS(state) {
     Y -= 10;
 
     Y = garantirEspaco(Y, 30);
-    td('Solucao Aplicada:', ML, Y, 8, bold, COR_MUTED); Y -= 14;
+    td('Solu\u00e7\u00e3o Aplicada:', ML, Y, 8, bold, COR_MUTED); Y -= 14;
     Y = wrap(state.servico_executado || 'Nenhuma aplicada.', ML, Y, 8, regular, COR_TEXTO, CW);
     Y -= 10;
 
     if (state.observacoes) {
       Y = garantirEspaco(Y, 30);
-      td('Observacoes:', ML, Y, 8, bold, COR_MUTED); Y -= 14;
+      td('Observa\u00e7\u00f5es:', ML, Y, 8, bold, COR_MUTED); Y -= 14;
       Y = wrap(state.observacoes, ML, Y, 8, regular, COR_TEXTO, CW);
       Y -= 10;
     }
 
   } else {
     Y = garantirEspaco(Y, 50);
-    Y = secao('CHECKLIST DE MANUTENCAO PREVENTIVA', Y);
+    Y = secao('CHECKLIST DE MANUTEN\u00c7\u00c3O PREVENTIVA', Y);
     hrz(Y); Y -= 16;
 
     const HALF = CW / 2 - 10;
@@ -271,7 +285,7 @@ export async function gerarPdfOS(state) {
   // ── PEÇAS TROCADAS (tabela) ───────────────────────────────
   if (state.pecas && state.pecas.length > 0) {
     Y = garantirEspaco(Y, 50);
-    Y = secao('PECAS TROCADAS', Y);
+    Y = secao('PE\u00c7AS TROCADAS', Y);
     hrz(Y); Y -= 16;
 
     // Larguras das colunas
@@ -286,8 +300,8 @@ export async function gerarPdfOS(state) {
     Y = garantirEspaco(Y, 20);
     ctx.page.drawRectangle({ x: ML, y: Y - 4, width: CW, height: 18, color: COR_PRIMARIA });
     td('Qtd', X_QTD + 2, Y + 1, 7.5, bold, COR_BRANCO);
-    td('Codigo / SKU',   X_COD,  Y + 1, 7.5, bold, COR_BRANCO);
-    td('Descricao da Peca', X_DESC, Y + 1, 7.5, bold, COR_BRANCO);
+    td('C\u00f3digo / SKU',   X_COD,  Y + 1, 7.5, bold, COR_BRANCO);
+    td('Descri\u00e7\u00e3o da Pe\u00e7a', X_DESC, Y + 1, 7.5, bold, COR_BRANCO);
     Y -= 18;
 
     for (let i = 0; i < state.pecas.length; i++) {
@@ -308,7 +322,7 @@ export async function gerarPdfOS(state) {
   // ── PEÇAS PENDENTES (tabela) ──────────────────────────────
   if (state.pecas_pendentes && state.pecas_pendentes.length > 0) {
     Y = garantirEspaco(Y, 50);
-    Y = secao('PECAS PENDENTES (ORCAMENTO / COMPRA)', Y);
+    Y = secao('PE\u00c7AS PENDENTES (OR\u00c7AMENTO / COMPRA)', Y);
     hrz(Y); Y -= 16;
 
     const C_QTD  = 36;
@@ -323,8 +337,8 @@ export async function gerarPdfOS(state) {
     Y = garantirEspaco(Y, 20);
     ctx.page.drawRectangle({ x: ML, y: Y - 4, width: CW, height: 18, color: COR_PENDENTE });
     td('Qtd', X_QTD + 2, Y + 1, 7.5, bold, COR_BRANCO);
-    td('Codigo / SKU',      X_COD,  Y + 1, 7.5, bold, COR_BRANCO);
-    td('Descricao da Peca', X_DESC, Y + 1, 7.5, bold, COR_BRANCO);
+    td('C\u00f3digo / SKU',      X_COD,  Y + 1, 7.5, bold, COR_BRANCO);
+    td('Descri\u00e7\u00e3o da Pe\u00e7a', X_DESC, Y + 1, 7.5, bold, COR_BRANCO);
     Y -= 18;
 
     for (let i = 0; i < state.pecas_pendentes.length; i++) {
@@ -354,12 +368,12 @@ export async function gerarPdfOS(state) {
     const CELULA = LEG_H + FOTO_H + 14; // espaço total por linha de fotos
 
     const LABEL_CATEGORIA = {
-      HORIMETRO:  'Horimetro',
-      PLACA_SERIE:'Placa / No de Serie',
-      ANTES:      'Antes',
-      DEPOIS:     'Depois',
-      PECA:       'Peca',
-      OUTRO:      'Outro',
+      HORIMETRO:   'Hor\u00edmetro',
+      PLACA_SERIE: 'Placa / N\u00ba de S\u00e9rie',
+      ANTES:       'Antes',
+      DEPOIS:      'Depois',
+      PECA:        'Pe\u00e7a',
+      OUTRO:       'Outro',
     };
 
     for (let i = 0; i < state.fotos.length; i++) {
@@ -413,12 +427,12 @@ export async function gerarPdfOS(state) {
 
   hrz(Y + 4, 1.5, COR_PRIMARIA); Y -= 8;
   Y = secao('TERMO DE ACEITE', Y) - 4;
-  td('Atesto que o servico descrito acima foi concluido a contento.', ML, Y, 7.5, regular, COR_MUTED);
+  td('Atesto que o servi\u00e7o descrito acima foi conclu\u00eddo a contento.', ML, Y, 7.5, regular, COR_MUTED);
   Y -= 70;
 
   const nomeCliente = sanitize(state.responsavel_cliente_nome || state.cliente_nome || 'Cliente');
   const cpfCliente  = sanitize(state.responsavel_cliente_cpf  || '');
-  const nomeTecnico = sanitize(state.responsavel_tecnico_nome || state.tecnico_nome || 'Tecnico');
+  const nomeTecnico = sanitize(state.responsavel_tecnico_nome || state.tecnico_nome || 'T\u00e9cnico');
   const cpfTecnico  = sanitize(state.responsavel_tecnico_cpf  || '');
 
   // Helper de imagem de assinatura

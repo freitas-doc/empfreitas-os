@@ -109,7 +109,7 @@ export default function RevisaoAssinaturas() {
 
   const handleFinalizar = async () => {
     if (!assinaturasCompletas) {
-      setErro('Ambas as assinaturas sao obrigatorias para finalizar a OS.');
+      setErro('Ambas as assinaturas são obrigatórias para finalizar a OS.');
       return;
     }
 
@@ -117,10 +117,43 @@ export default function RevisaoAssinaturas() {
     setErro(null);
 
     try {
+      // ── Validação de horários antes de finalizar ──────────
+      const agora = new Date();
+
+      if (state.data_termino_servico) {
+        const termino = new Date(state.data_termino_servico);
+
+        if (termino > agora) {
+          setErro(
+            'O término do serviço não pode ser posterior ao horário atual de fechamento da OS. ' +
+            'Corrija o campo "Término do Serviço" antes de finalizar.'
+          );
+          setFinalizando(false);
+          return;
+        }
+
+        if (state.data_inicio_servico && termino < new Date(state.data_inicio_servico)) {
+          setErro('O término do serviço não pode ser anterior ao início. Corrija as horas antes de finalizar.');
+          setFinalizando(false);
+          return;
+        }
+      }
+
       const finalId     = state.id || crypto.randomUUID();
       const temPendencia = state.pecas_pendentes && state.pecas_pendentes.length > 0;
       const statusFinal  = temPendencia ? 'COMPLETA - COM PENDENCIA' : 'FINALIZADA';
-      const finalOS      = { ...state, id: finalId, status: statusFinal };
+
+      // ── Atribui o número sequencial APENAS na finalização ────
+      const proximoNum = parseInt(localStorage.getItem('empfreitas_os_contador') || '0') + 1;
+      localStorage.setItem('empfreitas_os_contador', String(proximoNum));
+
+      const finalOS = {
+        ...state,
+        id: finalId,
+        status: statusFinal,
+        numero_os: proximoNum,
+        data_fechamento: new Date().toISOString(),
+      };
 
       // Gera o PDF final — agora COM as assinaturas embutidas
       const pdfBytes = await gerarPdfOS(finalOS);
@@ -136,18 +169,18 @@ export default function RevisaoAssinaturas() {
       try {
         await api.ordens.atualizar(finalId, { ...finalOS, dados_formulario_json: JSON.stringify(finalOS) });
         await api.ordens.finalizar(finalId);
-      } catch (e) { console.warn('Backend indisponivel. Salvo localmente.', e); }
+      } catch (e) { console.warn('Backend indisponível. Salvo localmente.', e); }
 
-      dispatch({ type: 'ATUALIZAR_CAMPO', campo: 'status', valor: statusFinal });
+      dispatch({ type: 'ATUALIZAR_CAMPOS', payload: { status: statusFinal, numero_os: proximoNum } });
 
       // Download / Share do PDF final com assinaturas
       const blob     = new Blob([pdfBytes], { type: 'application/pdf' });
-      const filename = `OS_${finalOS.numero_os || finalId.slice(0, 6)}_ASSINADA.pdf`;
+      const filename = `OS_${proximoNum}_ASSINADA.pdf`;
       const file     = new File([blob], filename, { type: 'application/pdf' });
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
-          await navigator.share({ title: `OS - ${state.cliente_nome}`, files: [file] });
+          await navigator.share({ title: `OS #${proximoNum} - ${finalOS.cliente_nome}`, files: [file] });
         } catch (e) { console.log('Share cancelado', e); }
       } else {
         const url = URL.createObjectURL(blob);
@@ -161,7 +194,7 @@ export default function RevisaoAssinaturas() {
       navigate('/historico');
 
     } catch (err) {
-      setErro(err.message || 'Erro critico ao gerar o documento final.');
+      setErro(err.message || 'Erro crítico ao gerar o documento final.');
       setFinalizando(false);
     }
   };

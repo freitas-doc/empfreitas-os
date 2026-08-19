@@ -97,7 +97,7 @@ export default function Home() {
                   </span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem' }}>
-                      {r.tipo_os}{r.numero_os ? ` · #${r.numero_os}` : ''}
+                      {r.tipo_os}{r.numero_os ? ` · #${r.numero_os}` : ' · Rascunho'}
                     </span>
                     <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {r.cliente_nome?.trim() || 'Cliente não preenchido'} · {new Date(r.atualizado_em).toLocaleDateString('pt-BR')}

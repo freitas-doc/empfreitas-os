@@ -46,13 +46,10 @@ const estadoInicial = {
 function osFormReducer(state, action) {
   switch (action.type) {
     case 'INICIAR_OS': {
-      // Número sequencial salvo no localStorage para persistir entre sessões
-      const proximoNum = parseInt(localStorage.getItem('empfreitas_os_contador') || '0') + 1;
-      localStorage.setItem('empfreitas_os_contador', String(proximoNum));
       return {
         ...estadoInicial,
         id: uuidv4(),
-        numero_os: proximoNum,
+        numero_os: null,           // número só é atribuído ao FINALIZAR
         tipo_os: action.payload.tipo_os,
         tipo_manutencao: action.payload.tipo_manutencao,
         data_abertura: new Date().toISOString(),

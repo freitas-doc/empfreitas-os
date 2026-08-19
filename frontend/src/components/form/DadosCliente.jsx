@@ -10,9 +10,11 @@ export default function DadosCliente() {
   const [modalAberto, setModalAberto] = useState(false);
   const [clientes, setClientes] = useState([]);
   const [buscando, setBuscando] = useState(false);
+  const [filtro, setFiltro] = useState('');
 
   useEffect(() => {
     if (modalAberto) {
+      setFiltro('');
       carregarClientes();
     }
   }, [modalAberto]);
@@ -43,6 +45,11 @@ export default function DadosCliente() {
     });
     alert("Cliente salvo no banco local com sucesso!");
   };
+
+  const clientesFiltrados = clientes.filter(cli => 
+    cli.nome.toLowerCase().includes(filtro.toLowerCase()) || 
+    (cli.documento && cli.documento.includes(filtro))
+  );
 
   return (
     <section className="card" style={{ marginBottom: 24 }}>
@@ -116,25 +123,38 @@ export default function DadosCliente() {
       {modalAberto && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
-          display: 'flex', justifyContent: 'center', alignItems: 'center',
-          zIndex: 1000, padding: 'var(--page-padding)'
+          background: 'rgba(0,0,0,0.9)',
+          zIndex: 2000, padding: '20px 10px',
+          display: 'flex', justifyContent: 'center'
         }}>
-          <div className="card" style={{ width: '100%', maxWidth: 400, position: 'relative', maxHeight: '80vh', overflowY: 'auto' }}>
-            <button 
-              onClick={() => setModalAberto(false)}
-              style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }}
-            >✕</button>
+          <div className="card" style={{ 
+            width: '100%', maxWidth: 450, 
+            display: 'flex', flexDirection: 'column', 
+            maxHeight: '90vh', overflow: 'hidden' 
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 className="title-sm" style={{ margin: 0 }}>Selecionar Cliente</h2>
+              <button 
+                onClick={() => setModalAberto(false)}
+                style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.5rem', cursor: 'pointer' }}
+              >✕</button>
+            </div>
             
-            <h2 className="title-sm" style={{ marginBottom: 20 }}>Selecionar Cliente</h2>
+            <input 
+              type="text"
+              placeholder="Filtrar por nome ou documento..."
+              value={filtro}
+              onChange={(e) => setFiltro(e.target.value)}
+              style={{ width: '100%', padding: '10px', marginBottom: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: '#fff' }}
+            />
 
-            {buscando ? (
-              <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 20 }}>Buscando...</p>
-            ) : clientes.length === 0 ? (
-              <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 20 }}>Nenhum cliente cadastrado.</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {clientes.map(cli => (
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {buscando ? (
+                <p style={{ color: 'var(--color-text-muted)', textAlign: 'center' }}>Buscando...</p>
+              ) : clientesFiltrados.length === 0 ? (
+                <p style={{ color: 'var(--color-text-muted)', textAlign: 'center' }}>Nenhum cliente encontrado.</p>
+              ) : (
+                clientesFiltrados.map(cli => (
                   <button 
                     key={cli.id}
                     onClick={() => selecionarCliente(cli)}
@@ -146,13 +166,11 @@ export default function DadosCliente() {
                     }}
                   >
                     <strong style={{ display: 'block', fontSize: '1rem', marginBottom: 4 }}>{cli.nome}</strong>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>
-                      {cli.documento || 'Sem CNPJ/CPF'}
-                    </span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--color-text-dim)' }}>{cli.documento || 'Sem CNPJ/CPF'}</span>
                   </button>
-                ))}
-              </div>
-            )}
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}
