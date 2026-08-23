@@ -10,6 +10,7 @@ import Rascunhos from './pages/Rascunhos.jsx';
 import Login from './pages/Login.jsx';
 import ProtectedRoute from './components/layout/ProtectedRoute.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
+import AdminUsuarios from './pages/AdminUsuarios.jsx';
 
 export const router = createBrowserRouter([
   {
@@ -23,6 +24,10 @@ export const router = createBrowserRouter([
       {
         path: '/admin',
         element: <AdminDashboard />
+      },
+      {
+        path: '/admin/usuarios',
+        element: <AdminUsuarios />
       }
     ]
   },

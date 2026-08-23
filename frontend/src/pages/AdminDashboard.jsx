@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { gerarPdfOS } from '../services/pdfGenerator';
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
@@ -11,6 +12,7 @@ const AdminDashboard = () => {
   const [ordens, setOrdens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [downloadingId, setDownloadingId] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,6 +46,57 @@ const AdminDashboard = () => {
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
+  };
+
+  const handleDownloadPDF = async (id, numero_os) => {
+    try {
+      setDownloadingId(id);
+      
+      // 1. Busca a OS completa do backend (incluindo o dados_formulario_json)
+      const osFull = await api.ordens.buscar(id);
+      if (!osFull || !osFull.dados_formulario_json) {
+        throw new Error('Dados do formulário não encontrados para esta OS.');
+      }
+
+      // 2. Faz o parse do estado original
+      const state = JSON.parse(osFull.dados_formulario_json);
+
+      // 3. Gera o PDF usando o gerador existente
+      const pdfBytes = await gerarPdfOS(state);
+
+      // 4. Força o download no navegador
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `OS_${numero_os || id.substring(0,8)}_ASSINADA.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Erro ao baixar PDF:', err);
+      alert('Erro ao gerar o PDF. A OS pode estar corrompida ou incompleta.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleDelete = async (id, numero_os) => {
+    const confirmacao = window.confirm(`ATENÇÃO!\nTem certeza que deseja excluir permanentemente a OS ${numero_os || id.substring(0,8)}?\nEssa ação não pode ser desfeita.`);
+    if (!confirmacao) return;
+
+    try {
+      await api.admin.excluirOrdem(id);
+      setOrdens(prev => prev.filter(os => os.id !== id));
+      
+      // Atualiza também os stats para manter a tela sincronizada
+      const statsData = await api.admin.stats();
+      setStats(statsData);
+      
+      alert('Ordem de serviço excluída com sucesso!');
+    } catch (err) {
+      console.error('Erro ao excluir OS:', err);
+      alert('Erro ao excluir a OS: ' + (err.message || 'Erro desconhecido.'));
+    }
   };
 
   // Styles baseados no global.css
@@ -193,8 +246,12 @@ const AdminDashboard = () => {
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--color-bg)' }}>
       {/* Navbar */}
       <nav style={styles.navbar}>
-        <div style={styles.navBrand}>
-          EMPFREITAS OS <span style={{ color: 'var(--color-text-dim)', fontWeight: 400 }}>| ADMIN</span>
+        <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+          <div style={styles.navBrand}>
+            EMPFREITAS OS <span style={{ color: 'var(--color-text-dim)', fontWeight: 400 }}>| ADMIN</span>
+          </div>
+          <a href="/admin" style={{ color: 'var(--color-accent)', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 600 }}>Dashboard</a>
+          <a href="/admin/usuarios" style={{ color: 'var(--color-text)', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 600, opacity: 0.7 }} onMouseOver={(e) => e.target.style.opacity = 1} onMouseOut={(e) => e.target.style.opacity = 0.7}>Usuários</a>
         </div>
         <div style={styles.navUser}>
           <span style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
@@ -278,6 +335,7 @@ const AdminDashboard = () => {
                   <th style={styles.th}>Tipo</th>
                   <th style={styles.th}>Status</th>
                   <th style={styles.th}>Data</th>
+                  <th style={{...styles.th, textAlign: 'right'}}>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -302,11 +360,62 @@ const AdminDashboard = () => {
                     <td style={{...styles.td, color: 'var(--color-text-muted)', fontSize: '0.85rem'}}>
                       {formatDate(os.criado_em)}
                     </td>
+                    <td style={{...styles.td, textAlign: 'right'}}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <button
+                          onClick={() => handleDownloadPDF(os.id, os.numero_os)}
+                          disabled={downloadingId === os.id}
+                          style={{
+                            background: 'var(--color-surface-3)',
+                            border: '1px solid var(--color-border)',
+                            color: 'var(--color-text)',
+                            padding: '6px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: downloadingId === os.id ? 'wait' : 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            opacity: downloadingId === os.id ? 0.7 : 1
+                          }}
+                        >
+                          {downloadingId === os.id ? '⏳' : '📄'} Baixar
+                        </button>
+                        <button
+                          onClick={() => handleDelete(os.id, os.numero_os)}
+                          style={{
+                            background: 'transparent',
+                            border: '1px solid var(--color-danger)',
+                            color: 'var(--color-danger)',
+                            padding: '6px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'var(--transition)'
+                          }}
+                          onMouseOver={(e) => {
+                            e.currentTarget.style.background = 'var(--color-danger)';
+                            e.currentTarget.style.color = '#fff';
+                          }}
+                          onMouseOut={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = 'var(--color-danger)';
+                          }}
+                        >
+                          🗑️ Excluir
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {ordens.length === 0 && (
                   <tr>
-                    <td colSpan="6" style={{...styles.td, textAlign: 'center', padding: '40px', color: 'var(--color-text-dim)'}}>
+                    <td colSpan="7" style={{...styles.td, textAlign: 'center', padding: '40px', color: 'var(--color-text-dim)'}}>
                       Nenhuma Ordem de Serviço encontrada.
                     </td>
                   </tr>

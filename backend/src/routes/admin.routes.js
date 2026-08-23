@@ -9,5 +9,10 @@ router.use(requireRole('admin'));
 
 router.get('/stats', adminController.getStats);
 router.get('/ordens', adminController.getOrdens);
+router.delete('/ordens/:id', adminController.deletarOS);
+
+router.get('/usuarios', adminController.listarUsuarios);
+router.post('/usuarios', adminController.criarUsuario);
+router.delete('/usuarios/:id', adminController.deletarUsuario);
 
 module.exports = router;

@@ -29,6 +29,10 @@ export const api = {
   admin: {
     stats: () => request('GET', '/admin/stats'),
     ordens: () => request('GET', '/admin/ordens'),
+    excluirOrdem: (id) => request('DELETE', `/admin/ordens/${id}`),
+    listarUsuarios: () => request('GET', '/admin/usuarios'),
+    criarUsuario: (dados) => request('POST', '/admin/usuarios', dados),
+    deletarUsuario: (id) => request('DELETE', `/admin/usuarios/${id}`),
   },
   ordens: {
     listar: (filtros = {}) => {
