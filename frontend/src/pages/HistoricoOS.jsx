@@ -4,16 +4,19 @@ import Header from '../components/layout/Header.jsx';
 import BottomNav from '../components/layout/BottomNav.jsx';
 import { indexedDbService } from '../services/indexedDbService.js';
 import { formatarDataHora, formatarNumeroOS } from '../utils/formatters.js';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export default function HistoricoOS() {
   const [ordens, setOrdens] = useState([]);
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     async function carregarOrdens() {
       // Prioriza a base local offline, o DB tem todas as rascunhos e finalizadas salvas localmente
-      const local = await indexedDbService.db.ordens.reverse().sortBy('atualizado_em');
+      const username = user?.role === 'admin' ? null : user?.username;
+      const local = await indexedDbService.listarTodasOrdens(username);
       setOrdens(local);
     }
     carregarOrdens();

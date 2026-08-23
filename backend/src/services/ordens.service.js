@@ -3,7 +3,7 @@ const db = require('../db/database');
 // ──────────────────────────────────────────────
 // LISTAR todas as OS (com filtros opcionais)
 // ──────────────────────────────────────────────
-async function listarOrdens({ status, tipo_os, tipo_manutencao, limit = 50, offset = 0 } = {}) {
+async function listarOrdens({ status, tipo_os, tipo_manutencao, tecnico_nome, limit = 50, offset = 0 } = {}) {
   let sql = `SELECT * FROM ordens_servico WHERE 1=1`;
   const params = [];
   let paramIdx = 1;
@@ -11,6 +11,7 @@ async function listarOrdens({ status, tipo_os, tipo_manutencao, limit = 50, offs
   if (status)        { sql += ` AND status = $${paramIdx++}`;         params.push(status); }
   if (tipo_os)       { sql += ` AND tipo_os = $${paramIdx++}`;        params.push(tipo_os); }
   if (tipo_manutencao) { sql += ` AND tipo_manutencao = $${paramIdx++}`; params.push(tipo_manutencao); }
+  if (tecnico_nome)  { sql += ` AND tecnico_nome = $${paramIdx++}`;   params.push(tecnico_nome); }
 
   sql += ` ORDER BY atualizado_em DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`;
   params.push(Number(limit), Number(offset));

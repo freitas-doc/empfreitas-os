@@ -52,6 +52,7 @@ function osFormReducer(state, action) {
         numero_os: null,           // número só é atribuído ao FINALIZAR
         tipo_os: action.payload.tipo_os,
         tipo_manutencao: action.payload.tipo_manutencao,
+        tecnico_nome: action.payload.tecnico_nome || '',
         data_abertura: new Date().toISOString(),
       };
     }

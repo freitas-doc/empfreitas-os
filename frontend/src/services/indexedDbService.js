@@ -22,8 +22,20 @@ export const indexedDbService = {
     return db.ordens.get(id);
   },
 
-  listarRascunhos: async () => {
-    return db.ordens.where('status').equals('RASCUNHO').reverse().sortBy('atualizado_em');
+  listarRascunhos: async (username) => {
+    let collection = db.ordens.where('status').equals('RASCUNHO');
+    if (username) {
+      collection = collection.filter(os => os.tecnico_nome === username);
+    }
+    return collection.reverse().sortBy('atualizado_em');
+  },
+
+  listarTodasOrdens: async (username) => {
+    let collection = db.ordens.orderBy('atualizado_em').reverse();
+    if (username) {
+      collection = collection.filter(os => os.tecnico_nome === username);
+    }
+    return collection.toArray();
   },
 
   deletarOrdem: async (id) => {

@@ -4,10 +4,12 @@ import Header from '../components/layout/Header.jsx';
 import BottomNav from '../components/layout/BottomNav.jsx';
 import { useOSForm } from '../context/OSFormContext.jsx';
 import { indexedDbService } from '../services/indexedDbService.js';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export default function Home() {
   const navigate = useNavigate();
   const { dispatch } = useOSForm();
+  const { user } = useAuth();
   
   const [tipoSelecionado, setTipoSelecionado] = useState(null);
   const [manutencaoSelecionada, setManutencaoSelecionada] = useState(null);
@@ -17,7 +19,8 @@ export default function Home() {
 
   useEffect(() => {
     async function buscarRascunhos() {
-      const drafts = await indexedDbService.listarRascunhos();
+      const username = user?.role === 'admin' ? null : user?.username;
+      const drafts = await indexedDbService.listarRascunhos(username);
       if (drafts.length > 0) {
         setRascunhos(drafts);
         setMostrarModalRascunho(true);
@@ -27,7 +30,14 @@ export default function Home() {
   }, []);
 
   const handleIniciarOS = async () => {
-    dispatch({ type: 'INICIAR_OS', payload: { tipo_os: tipoSelecionado, tipo_manutencao: manutencaoSelecionada } });
+    dispatch({ 
+      type: 'INICIAR_OS', 
+      payload: { 
+        tipo_os: tipoSelecionado, 
+        tipo_manutencao: manutencaoSelecionada,
+        tecnico_nome: user?.username || ''
+      } 
+    });
     
     // Cria rascunho em branco inicial e pega a ID
     const path = tipoSelecionado === 'EMPILHADEIRA' ? '/nova-os/empilhadeira' : '/nova-os/controlador';

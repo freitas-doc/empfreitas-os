@@ -4,6 +4,7 @@ import Header from '../components/layout/Header.jsx';
 import BottomNav from '../components/layout/BottomNav.jsx';
 import { useOSForm } from '../context/OSFormContext.jsx';
 import { indexedDbService } from '../services/indexedDbService.js';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const ICONE_TIPO = {
   EMPILHADEIRA: '🚜',
@@ -24,13 +25,15 @@ function formatarData(iso) {
 export default function Rascunhos() {
   const navigate = useNavigate();
   const { dispatch } = useOSForm();
+  const { user } = useAuth();
   const [rascunhos, setRascunhos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [excluindo, setExcluindo] = useState(null); // id do rascunho sendo excluído
 
   const carregar = useCallback(async () => {
     setCarregando(true);
-    const lista = await indexedDbService.listarRascunhos();
+    const username = user?.role === 'admin' ? null : user?.username;
+    const lista = await indexedDbService.listarRascunhos(username);
     setRascunhos(lista);
     setCarregando(false);
   }, []);

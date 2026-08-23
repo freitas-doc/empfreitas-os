@@ -4,8 +4,15 @@ const ordensService = require('../services/ordens.service');
 // GET /api/ordens
 async function listar(req, res, next) {
   try {
-    const { status, tipo_os, tipo_manutencao, limit, offset } = req.query;
-    const ordens = await ordensService.listarOrdens({ status, tipo_os, tipo_manutencao, limit, offset });
+    let { status, tipo_os, tipo_manutencao, limit, offset } = req.query;
+    
+    // Filtro de segurança: Técnicos só veem as próprias OSs
+    let tecnico_nome = req.query.tecnico_nome;
+    if (req.user && req.user.role !== 'admin') {
+      tecnico_nome = req.user.username;
+    }
+
+    const ordens = await ordensService.listarOrdens({ status, tipo_os, tipo_manutencao, tecnico_nome, limit, offset });
     res.json({ success: true, data: ordens, total: ordens.length });
   } catch (err) {
     next(err);
