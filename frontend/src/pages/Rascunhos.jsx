@@ -36,7 +36,7 @@ export default function Rascunhos() {
     const lista = await indexedDbService.listarRascunhos(username);
     setRascunhos(lista);
     setCarregando(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     carregar();

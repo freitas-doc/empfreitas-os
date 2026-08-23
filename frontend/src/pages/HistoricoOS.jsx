@@ -20,7 +20,7 @@ export default function HistoricoOS() {
       setOrdens(local);
     }
     carregarOrdens();
-  }, []);
+  }, [user]);
 
   const ordensFiltradas = ordens.filter(o => {
     if (filtroStatus === 'TODOS') return true;

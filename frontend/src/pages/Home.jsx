@@ -27,7 +27,7 @@ export default function Home() {
       }
     }
     buscarRascunhos();
-  }, []);
+  }, [user]);
 
   const handleIniciarOS = async () => {
     dispatch({ 

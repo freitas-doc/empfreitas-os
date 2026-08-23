@@ -23,19 +23,19 @@ export const indexedDbService = {
   },
 
   listarRascunhos: async (username) => {
-    let collection = db.ordens.where('status').equals('RASCUNHO');
+    let arr = await db.ordens.where('status').equals('RASCUNHO').reverse().sortBy('atualizado_em');
     if (username) {
-      collection = collection.filter(os => os.tecnico_nome === username);
+      arr = arr.filter(os => os.tecnico_nome === username);
     }
-    return collection.reverse().sortBy('atualizado_em');
+    return arr;
   },
 
   listarTodasOrdens: async (username) => {
-    let collection = db.ordens.orderBy('atualizado_em').reverse();
+    let arr = await db.ordens.orderBy('atualizado_em').reverse().toArray();
     if (username) {
-      collection = collection.filter(os => os.tecnico_nome === username);
+      arr = arr.filter(os => os.tecnico_nome === username);
     }
-    return collection.toArray();
+    return arr;
   },
 
   deletarOrdem: async (id) => {
