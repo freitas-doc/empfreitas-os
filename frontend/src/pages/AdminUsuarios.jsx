@@ -225,8 +225,9 @@ const AdminUsuarios = () => {
       {/* Navbar */}
       <nav style={styles.navbar}>
         <div style={styles.navLinks}>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '0.05em', marginRight: '20px' }}>
-            EMPFREITAS OS
+          <div style={{ display: 'flex', alignItems: 'center', fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '0.05em', marginRight: '20px' }}>
+            <img src="/logo-empfreitas.png" alt="Logo Empfreitas" style={{ height: '32px', marginRight: '12px', objectFit: 'contain' }} />
+            EMPFREITAS OS <span style={{ color: 'var(--color-text-dim)', fontWeight: 400, marginLeft: '6px' }}>| ADMIN</span>
           </div>
           <a href="/admin" style={styles.navLink} onMouseOver={(e) => e.target.style.opacity = 1} onMouseOut={(e) => e.target.style.opacity = 0.7}>Dashboard</a>
           <a href="/admin/usuarios" style={{...styles.navLink, ...styles.navLinkActive}}>Usuários</a>
@@ -246,7 +247,25 @@ const AdminUsuarios = () => {
         </div>
       </nav>
 
-      <main style={styles.container} className="fade-in">
+      <main style={{ ...styles.container, position: 'relative', zIndex: 1 }} className="fade-in">
+        
+        {/* Marca d'água */}
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '80%',
+          height: '80%',
+          backgroundImage: 'url(/logo-empfreitas.png)',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center',
+          backgroundSize: 'contain',
+          opacity: 0.03, // Transparência bem leve
+          filter: 'grayscale(100%) brightness(200%)', // Força a ficar branca num fundo escuro
+          zIndex: -1,
+          pointerEvents: 'none'
+        }} />
         
         {/* Formulário de Criação */}
         <div style={styles.formContainer}>
