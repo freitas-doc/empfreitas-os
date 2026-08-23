@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import logoUrl from '../../assets/logo-empfreitas.png';
 
 const styles = {
@@ -54,10 +55,28 @@ const styles = {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
+  logoutBtn: {
+    background: 'transparent',
+    border: '1px solid var(--color-border)',
+    color: 'var(--color-text-muted)',
+    fontSize: '0.75rem',
+    padding: '4px 8px',
+    borderRadius: 'var(--radius-sm)',
+    cursor: 'pointer',
+    transition: 'var(--transition)'
+  }
 };
 
 export default function Header({ title = 'EMPFREITAS OS', subtitle, showBack = false, actions }) {
   const navigate = useNavigate();
+  const { logout, isAuthenticated } = useAuth() || {};
+
+  const handleLogout = () => {
+    if (logout) {
+      logout();
+      navigate('/login');
+    }
+  };
 
   return (
     <header style={styles.header}>
@@ -80,7 +99,14 @@ export default function Header({ title = 'EMPFREITAS OS', subtitle, showBack = f
         {subtitle && <div style={styles.subtitle}>{subtitle}</div>}
       </div>
 
-      {actions && <div style={{ display: 'flex', gap: 8 }}>{actions}</div>}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        {actions}
+        {isAuthenticated && !showBack && (
+          <button style={styles.logoutBtn} onClick={handleLogout} aria-label="Sair">
+            Sair
+          </button>
+        )}
+      </div>
     </header>
   );
 }

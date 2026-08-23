@@ -1,81 +1,52 @@
-const initSqlJs = require('sql.js');
-const path = require('path');
+const { Pool } = require('pg');
 const fs = require('fs');
+const path = require('path');
 
-const DB_PATH = process.env.DB_PATH
-  ? path.resolve(process.env.DB_PATH)
-  : path.join(__dirname, '../../data/empfreitas.db');
+// Se POSTGRES_URL não existir, vai usar os dados padrões locais ou dar erro de conexão
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL || 'postgresql://postgres:postgres@localhost:5432/empfreitas',
+  ssl: process.env.POSTGRES_URL ? { rejectUnauthorized: false } : false // SSL obrigatório no Vercel
+});
 
 const SCHEMA_PATH = path.join(__dirname, 'schema.sql');
 
-// Garante que o diretório data/ existe
-const dbDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-}
-
-let db = null;
-
-// sql.js é assíncrono na inicialização — exportamos uma Promise que resolve com o db
 async function initDb() {
-  if (db) return db;
-
-  const SQL = await initSqlJs();
-
-  // Carrega banco existente ou cria novo
-  if (fs.existsSync(DB_PATH)) {
-    const fileBuffer = fs.readFileSync(DB_PATH);
-    db = new SQL.Database(fileBuffer);
-    console.log(`[DB] SQLite carregado de: ${DB_PATH}`);
-  } else {
-    db = new SQL.Database();
-    console.log(`[DB] Novo banco SQLite criado em: ${DB_PATH}`);
+  try {
+    const client = await pool.connect();
+    
+    // Executa o schema para criar as tabelas se não existirem
+    const schema = fs.readFileSync(SCHEMA_PATH, 'utf-8');
+    await client.query(schema);
+    
+    client.release();
+    console.log('[DB] Conectado ao PostgreSQL com sucesso.');
+  } catch (error) {
+    console.error('[DB] Erro ao conectar no PostgreSQL:', error);
+    throw error;
   }
-
-  // Executa o schema (CREATE TABLE IF NOT EXISTS — idempotente)
-  const schema = fs.readFileSync(SCHEMA_PATH, 'utf-8');
-  db.run(schema);
-
-  // Persiste no disco a cada operação de escrita
-  _persistDb();
-
-  return db;
 }
 
-// Persiste o banco em disco
-function _persistDb() {
-  if (!db) return;
-  const data = db.export();
-  fs.writeFileSync(DB_PATH, Buffer.from(data));
+// Helper genérico para queries
+async function query(sql, params = []) {
+  const result = await pool.query(sql, params);
+  return result;
 }
 
-// Wrapper síncrono para execução de queries — persiste após writes
-function run(sql, params = []) {
-  db.run(sql, params);
-  _persistDb();
+// Helpers para simular a sintaxe antiga do SQLite (db.get, db.all, db.run)
+// Para o PostgreSQL, usamos `$1, $2` em vez de `?` na string SQL.
+
+async function get(sql, params = []) {
+  const result = await query(sql, params);
+  return result.rows[0] || null;
 }
 
-function get(sql, params = []) {
-  const stmt = db.prepare(sql);
-  stmt.bind(params);
-  if (stmt.step()) {
-    const row = stmt.getAsObject();
-    stmt.free();
-    return row;
-  }
-  stmt.free();
-  return null;
+async function all(sql, params = []) {
+  const result = await query(sql, params);
+  return result.rows;
 }
 
-function all(sql, params = []) {
-  const stmt = db.prepare(sql);
-  stmt.bind(params);
-  const rows = [];
-  while (stmt.step()) {
-    rows.push(stmt.getAsObject());
-  }
-  stmt.free();
-  return rows;
+async function run(sql, params = []) {
+  await query(sql, params);
 }
 
-module.exports = { initDb, run, get, all, persistDb: _persistDb };
+module.exports = { initDb, query, get, all, run, pool };

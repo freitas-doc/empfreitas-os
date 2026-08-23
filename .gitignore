@@ -48,3 +48,6 @@ backend/*.sqlite
 
 # Gemini
 .gemini/
+
+.vercel
+.env*

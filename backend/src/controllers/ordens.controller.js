@@ -2,10 +2,10 @@ const { v4: uuidv4 } = require('uuid');
 const ordensService = require('../services/ordens.service');
 
 // GET /api/ordens
-function listar(req, res, next) {
+async function listar(req, res, next) {
   try {
     const { status, tipo_os, tipo_manutencao, limit, offset } = req.query;
-    const ordens = ordensService.listarOrdens({ status, tipo_os, tipo_manutencao, limit, offset });
+    const ordens = await ordensService.listarOrdens({ status, tipo_os, tipo_manutencao, limit, offset });
     res.json({ success: true, data: ordens, total: ordens.length });
   } catch (err) {
     next(err);
@@ -13,9 +13,9 @@ function listar(req, res, next) {
 }
 
 // GET /api/ordens/:id
-function buscarPorId(req, res, next) {
+async function buscarPorId(req, res, next) {
   try {
-    const ordem = ordensService.buscarOrdemPorId(req.params.id);
+    const ordem = await ordensService.buscarOrdemPorId(req.params.id);
     if (!ordem) return res.status(404).json({ success: false, message: 'OS não encontrada.' });
     res.json({ success: true, data: ordem });
   } catch (err) {
@@ -24,7 +24,7 @@ function buscarPorId(req, res, next) {
 }
 
 // POST /api/ordens
-function criar(req, res, next) {
+async function criar(req, res, next) {
   try {
     const { tipo_os, tipo_manutencao } = req.body;
 
@@ -36,7 +36,7 @@ function criar(req, res, next) {
     }
 
     const id = req.body.id || uuidv4();
-    const ordem = ordensService.criarOrdem({ ...req.body, id });
+    const ordem = await ordensService.criarOrdem({ ...req.body, id });
     res.status(201).json({ success: true, data: ordem });
   } catch (err) {
     next(err);
@@ -44,12 +44,12 @@ function criar(req, res, next) {
 }
 
 // PUT /api/ordens/:id
-function atualizar(req, res, next) {
+async function atualizar(req, res, next) {
   try {
-    const ordemExistente = ordensService.buscarOrdemPorId(req.params.id);
+    const ordemExistente = await ordensService.buscarOrdemPorId(req.params.id);
     if (!ordemExistente) return res.status(404).json({ success: false, message: 'OS não encontrada.' });
 
-    const ordem = ordensService.atualizarOrdem(req.params.id, req.body);
+    const ordem = await ordensService.atualizarOrdem(req.params.id, req.body);
     res.json({ success: true, data: ordem });
   } catch (err) {
     next(err);
@@ -57,9 +57,9 @@ function atualizar(req, res, next) {
 }
 
 // POST /api/ordens/:id/finalizar
-function finalizar(req, res, next) {
+async function finalizar(req, res, next) {
   try {
-    const ordem = ordensService.finalizarOrdem(req.params.id);
+    const ordem = await ordensService.finalizarOrdem(req.params.id);
     if (!ordem) return res.status(404).json({ success: false, message: 'OS não encontrada.' });
     res.json({ success: true, data: ordem });
   } catch (err) {
@@ -68,9 +68,9 @@ function finalizar(req, res, next) {
 }
 
 // DELETE /api/ordens/:id
-function deletar(req, res, next) {
+async function deletar(req, res, next) {
   try {
-    const removido = ordensService.deletarOrdem(req.params.id);
+    const removido = await ordensService.deletarOrdem(req.params.id);
     if (!removido) {
       return res.status(404).json({
         success: false,

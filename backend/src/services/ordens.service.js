@@ -3,15 +3,16 @@ const db = require('../db/database');
 // ──────────────────────────────────────────────
 // LISTAR todas as OS (com filtros opcionais)
 // ──────────────────────────────────────────────
-function listarOrdens({ status, tipo_os, tipo_manutencao, limit = 50, offset = 0 } = {}) {
+async function listarOrdens({ status, tipo_os, tipo_manutencao, limit = 50, offset = 0 } = {}) {
   let sql = `SELECT * FROM ordens_servico WHERE 1=1`;
   const params = [];
+  let paramIdx = 1;
 
-  if (status) { sql += ` AND status = ?`; params.push(status); }
-  if (tipo_os) { sql += ` AND tipo_os = ?`; params.push(tipo_os); }
-  if (tipo_manutencao) { sql += ` AND tipo_manutencao = ?`; params.push(tipo_manutencao); }
+  if (status)        { sql += ` AND status = $${paramIdx++}`;         params.push(status); }
+  if (tipo_os)       { sql += ` AND tipo_os = $${paramIdx++}`;        params.push(tipo_os); }
+  if (tipo_manutencao) { sql += ` AND tipo_manutencao = $${paramIdx++}`; params.push(tipo_manutencao); }
 
-  sql += ` ORDER BY atualizado_em DESC LIMIT ? OFFSET ?`;
+  sql += ` ORDER BY atualizado_em DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`;
   params.push(Number(limit), Number(offset));
 
   return db.all(sql, params);
@@ -20,13 +21,13 @@ function listarOrdens({ status, tipo_os, tipo_manutencao, limit = 50, offset = 0
 // ──────────────────────────────────────────────
 // BUSCAR uma OS por ID (com peças, fotos e assinaturas)
 // ──────────────────────────────────────────────
-function buscarOrdemPorId(id) {
-  const ordem = db.get(`SELECT * FROM ordens_servico WHERE id = ?`, [id]);
+async function buscarOrdemPorId(id) {
+  const ordem = await db.get(`SELECT * FROM ordens_servico WHERE id = $1`, [id]);
   if (!ordem) return null;
 
-  ordem.pecas = db.all(`SELECT * FROM pecas_trocadas WHERE ordem_servico_id = ?`, [id]);
-  ordem.fotos = db.all(`SELECT id, categoria, criado_em FROM fotos_os WHERE ordem_servico_id = ?`, [id]);
-  ordem.assinaturas = db.all(`SELECT id, tipo, criado_em FROM assinaturas_os WHERE ordem_servico_id = ?`, [id]);
+  ordem.pecas = await db.all(`SELECT * FROM pecas_trocadas WHERE ordem_servico_id = $1`, [id]);
+  ordem.fotos = await db.all(`SELECT id, categoria, criado_em FROM fotos_os WHERE ordem_servico_id = $1`, [id]);
+  ordem.assinaturas = await db.all(`SELECT id, tipo, criado_em FROM assinaturas_os WHERE ordem_servico_id = $1`, [id]);
 
   return ordem;
 }
@@ -34,7 +35,7 @@ function buscarOrdemPorId(id) {
 // ──────────────────────────────────────────────
 // CRIAR OS (rascunho)
 // ──────────────────────────────────────────────
-function criarOrdem(dados) {
+async function criarOrdem(dados) {
   const {
     id, tipo_os, tipo_manutencao, numero_os,
     cliente_nome, cliente_documento, cliente_endereco,
@@ -43,7 +44,7 @@ function criarOrdem(dados) {
     data_abertura, dados_formulario_json
   } = dados;
 
-  db.run(`
+  await db.run(`
     INSERT INTO ordens_servico (
       id, tipo_os, tipo_manutencao, status, numero_os,
       cliente_nome, cliente_documento, cliente_endereco,
@@ -51,11 +52,11 @@ function criarOrdem(dados) {
       tecnico_nome, descricao_problema, servico_executado, observacoes,
       data_abertura, dados_formulario_json
     ) VALUES (
-      ?, ?, ?, 'RASCUNHO', ?,
-      ?, ?, ?,
-      ?, ?, ?,
-      ?, ?, ?, ?,
-      ?, ?
+      $1, $2, $3, 'RASCUNHO', $4,
+      $5, $6, $7,
+      $8, $9, $10,
+      $11, $12, $13, $14,
+      $15, $16
     )
   `, [
     id, tipo_os, tipo_manutencao, numero_os || null,
@@ -71,7 +72,7 @@ function criarOrdem(dados) {
 // ──────────────────────────────────────────────
 // ATUALIZAR OS (autosave)
 // ──────────────────────────────────────────────
-function atualizarOrdem(id, dados) {
+async function atualizarOrdem(id, dados) {
   const campos = [
     'numero_os', 'cliente_nome', 'cliente_documento', 'cliente_endereco',
     'equipamento_modelo', 'equipamento_serie', 'equipamento_horimetro',
@@ -82,11 +83,13 @@ function atualizarOrdem(id, dados) {
   const definidos = campos.filter(c => dados[c] !== undefined);
   if (!definidos.length) return buscarOrdemPorId(id);
 
-  const setClauses = definidos.map(c => `${c} = ?`).join(', ');
+  // Monta o SET com $1, $2, ... para o PostgreSQL
+  const setClauses = definidos.map((c, i) => `${c} = $${i + 1}`).join(', ');
   const values = definidos.map(c => dados[c]);
+  const idParamIdx = values.length + 1;
 
-  db.run(
-    `UPDATE ordens_servico SET ${setClauses}, atualizado_em = datetime('now') WHERE id = ?`,
+  await db.run(
+    `UPDATE ordens_servico SET ${setClauses}, atualizado_em = CURRENT_TIMESTAMP WHERE id = $${idParamIdx}`,
     [...values, id]
   );
 
@@ -96,12 +99,12 @@ function atualizarOrdem(id, dados) {
 // ──────────────────────────────────────────────
 // FINALIZAR OS
 // ──────────────────────────────────────────────
-function finalizarOrdem(id) {
-  const existe = db.get(`SELECT id FROM ordens_servico WHERE id = ?`, [id]);
+async function finalizarOrdem(id) {
+  const existe = await db.get(`SELECT id FROM ordens_servico WHERE id = $1`, [id]);
   if (!existe) return null;
 
-  db.run(
-    `UPDATE ordens_servico SET status = 'FINALIZADA', data_fechamento = datetime('now'), atualizado_em = datetime('now') WHERE id = ?`,
+  await db.run(
+    `UPDATE ordens_servico SET status = 'FINALIZADA', data_fechamento = CURRENT_TIMESTAMP, atualizado_em = CURRENT_TIMESTAMP WHERE id = $1`,
     [id]
   );
 
@@ -111,11 +114,11 @@ function finalizarOrdem(id) {
 // ──────────────────────────────────────────────
 // DELETAR OS (apenas rascunhos)
 // ──────────────────────────────────────────────
-function deletarOrdem(id) {
-  const antes = db.get(`SELECT id FROM ordens_servico WHERE id = ? AND status = 'RASCUNHO'`, [id]);
+async function deletarOrdem(id) {
+  const antes = await db.get(`SELECT id FROM ordens_servico WHERE id = $1 AND status = 'RASCUNHO'`, [id]);
   if (!antes) return false;
 
-  db.run(`DELETE FROM ordens_servico WHERE id = ? AND status = 'RASCUNHO'`, [id]);
+  await db.run(`DELETE FROM ordens_servico WHERE id = $1 AND status = 'RASCUNHO'`, [id]);
   return true;
 }
 

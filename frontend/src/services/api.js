@@ -5,16 +5,31 @@ async function request(method, path, body) {
     method,
     headers: { 'Content-Type': 'application/json' },
   };
+
+  const token = localStorage.getItem('token');
+  if (token) {
+    options.headers['Authorization'] = `Bearer ${token}`;
+  }
+
   if (body) options.body = JSON.stringify(body);
 
   const res = await fetch(`${BASE_URL}${path}`, options);
   const json = await res.json();
 
-  if (!res.ok) throw new Error(json.message || `Erro ${res.status}`);
-  return json.data;
+  if (!res.ok) throw new Error(json.error || json.message || `Erro ${res.status}`);
+  
+  // Alguns endpoints (como login) podem retornar os dados na raiz, outros dentro de 'data'
+  return json.data !== undefined ? json.data : json;
 }
 
 export const api = {
+  auth: {
+    login: (credentials) => request('POST', '/auth/login', credentials),
+  },
+  admin: {
+    stats: () => request('GET', '/admin/stats'),
+    ordens: () => request('GET', '/admin/ordens'),
+  },
   ordens: {
     listar: (filtros = {}) => {
       const params = new URLSearchParams(filtros).toString();
