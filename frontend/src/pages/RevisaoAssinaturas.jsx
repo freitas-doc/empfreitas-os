@@ -167,7 +167,23 @@ export default function RevisaoAssinaturas() {
 
       // Sincroniza com backend (silencioso se offline)
       try {
-        await api.ordens.atualizar(finalId, { ...finalOS, dados_formulario_json: JSON.stringify(finalOS) });
+        // Verifica se a OS já existe no backend
+        let osExisteNoBackend = false;
+        try {
+          await api.ordens.buscar(finalId);
+          osExisteNoBackend = true;
+        } catch (_) {
+          osExisteNoBackend = false;
+        }
+
+        const payload = { ...finalOS, dados_formulario_json: JSON.stringify(finalOS) };
+
+        if (osExisteNoBackend) {
+          await api.ordens.atualizar(finalId, payload);
+        } else {
+          // OS nunca foi criada no backend — criar agora
+          await api.ordens.criar(payload);
+        }
         await api.ordens.finalizar(finalId);
       } catch (e) { console.warn('Backend indisponível. Salvo localmente.', e); }
 
