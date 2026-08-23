@@ -25,7 +25,7 @@ export const indexedDbService = {
   listarRascunhos: async (username) => {
     let arr = await db.ordens.where('status').equals('RASCUNHO').reverse().sortBy('atualizado_em');
     if (username) {
-      arr = arr.filter(os => os.tecnico_nome === username);
+      arr = arr.filter(os => os.tecnico_nome === username || !os.tecnico_nome);
     }
     return arr;
   },
@@ -33,7 +33,7 @@ export const indexedDbService = {
   listarTodasOrdens: async (username) => {
     let arr = await db.ordens.orderBy('atualizado_em').reverse().toArray();
     if (username) {
-      arr = arr.filter(os => os.tecnico_nome === username);
+      arr = arr.filter(os => os.tecnico_nome === username || !os.tecnico_nome);
     }
     return arr;
   },
