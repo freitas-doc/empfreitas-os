@@ -14,9 +14,10 @@ const PORT = process.env.PORT || 3001;
 
 // ── Middlewares globais ──────────────────────────────────
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || true, // Em prod aceita qualquer origem (controlada pelo próprio auth)
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 
 app.use(express.json({ limit: '50mb' }));
@@ -36,27 +37,19 @@ app.use((req, res) => {
 // Tratamento de erros centralizado
 app.use(errorHandler);
 
-// ── Inicialização ───
-async function start() {
-  try {
-    await initDb();
-    
-    // Na Vercel (Serverless), não precisamos escutar uma porta
-    if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+// ── Inicialização (apenas local) ───
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  initDb()
+    .then(() => {
       app.listen(PORT, () => {
         console.log(`\n🔧 EMPFREITAS OS Backend rodando em http://localhost:${PORT}`);
         console.log(`   Health check: http://localhost:${PORT}/api/health`);
         console.log(`   Ordens:       http://localhost:${PORT}/api/ordens\n`);
       });
-    } else {
-      console.log('Ambiente Serverless detectado (Vercel). Banco de dados inicializado.');
-    }
-  } catch (err) {
-    console.error('[FATAL] Falha ao inicializar o banco de dados:', err);
-    process.exit(1);
-  }
+    })
+    .catch(err => {
+      console.error('[FATAL] Falha ao inicializar o banco de dados:', err);
+    });
 }
 
-// Inicia o app localmente ou apenas inicializa o DB na nuvem
-start();
 module.exports = app;
