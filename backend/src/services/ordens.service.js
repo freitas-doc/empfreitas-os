@@ -42,7 +42,8 @@ async function criarOrdem(dados) {
     cliente_nome, cliente_documento, cliente_endereco,
     equipamento_modelo, equipamento_serie, equipamento_horimetro,
     tecnico_nome, descricao_problema, servico_executado, observacoes,
-    data_abertura, dados_formulario_json
+    data_abertura, dados_formulario_json,
+    horas_trabalhadas, quilometragem_rodada
   } = dados;
 
   await db.run(`
@@ -51,20 +52,22 @@ async function criarOrdem(dados) {
       cliente_nome, cliente_documento, cliente_endereco,
       equipamento_modelo, equipamento_serie, equipamento_horimetro,
       tecnico_nome, descricao_problema, servico_executado, observacoes,
-      data_abertura, dados_formulario_json
+      data_abertura, dados_formulario_json, horas_trabalhadas, quilometragem_rodada
     ) VALUES (
       $1, $2, $3, 'RASCUNHO', $4,
       $5, $6, $7,
       $8, $9, $10,
       $11, $12, $13, $14,
-      $15, $16
+      $15, $16, $17, $18
     )
   `, [
     id, tipo_os, tipo_manutencao, numero_os || null,
     cliente_nome || null, cliente_documento || null, cliente_endereco || null,
     equipamento_modelo || null, equipamento_serie || null, equipamento_horimetro || null,
     tecnico_nome || null, descricao_problema || null, servico_executado || null, observacoes || null,
-    data_abertura || new Date().toISOString(), dados_formulario_json || null
+    data_abertura || new Date().toISOString(), dados_formulario_json || null,
+    parseFloat(horas_trabalhadas) || 0,
+    parseFloat(quilometragem_rodada) || 0
   ]);
 
   return buscarOrdemPorId(id);
@@ -78,11 +81,15 @@ async function atualizarOrdem(id, dados) {
     'numero_os', 'cliente_nome', 'cliente_documento', 'cliente_endereco',
     'equipamento_modelo', 'equipamento_serie', 'equipamento_horimetro',
     'tecnico_nome', 'descricao_problema', 'servico_executado', 'observacoes',
-    'dados_formulario_json'
+    'dados_formulario_json', 'horas_trabalhadas', 'quilometragem_rodada'
   ];
 
   const definidos = campos.filter(c => dados[c] !== undefined);
   if (!definidos.length) return buscarOrdemPorId(id);
+
+  // Converte para numérico os campos de horas/km se presentes
+  if (dados.horas_trabalhadas !== undefined) dados.horas_trabalhadas = parseFloat(dados.horas_trabalhadas) || 0;
+  if (dados.quilometragem_rodada !== undefined) dados.quilometragem_rodada = parseFloat(dados.quilometragem_rodada) || 0;
 
   // Monta o SET com $1, $2, ... para o PostgreSQL
   const setClauses = definidos.map((c, i) => `${c} = $${i + 1}`).join(', ');
@@ -123,11 +130,23 @@ async function deletarOrdem(id) {
   return true;
 }
 
+// ──────────────────────────────────────────────
+// PRÓXIMO NÚMERO SEQUENCIAL DE OS
+// ──────────────────────────────────────────────
+async function buscarProximoNumeroOS() {
+  const result = await db.get(
+    `SELECT COALESCE(MAX(CAST(numero_os AS INTEGER)), 0) + 1 AS proximo FROM ordens_servico WHERE numero_os ~ '^[0-9]+$'`
+  );
+  return result?.proximo || 1;
+}
+
 module.exports = {
   listarOrdens,
   buscarOrdemPorId,
   criarOrdem,
   atualizarOrdem,
   finalizarOrdem,
-  deletarOrdem
+  deletarOrdem,
+  buscarProximoNumeroOS
 };
+

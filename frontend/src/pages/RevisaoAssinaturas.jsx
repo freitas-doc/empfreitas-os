@@ -143,9 +143,17 @@ export default function RevisaoAssinaturas() {
       const temPendencia = state.pecas_pendentes && state.pecas_pendentes.length > 0;
       const statusFinal  = temPendencia ? 'COMPLETA - COM PENDENCIA' : 'FINALIZADA';
 
-      // ── Atribui o número sequencial APENAS na finalização ────
-      const proximoNum = parseInt(localStorage.getItem('empfreitas_os_contador') || '0') + 1;
+      // ── Atribui o número sequencial consultando o backend ────
+      let proximoNum;
+      try {
+        const resultado = await api.ordens.proximoNumero();
+        proximoNum = resultado.proximo_numero;
+      } catch (_) {
+        // Fallback para localStorage se backend indisponível
+        proximoNum = parseInt(localStorage.getItem('empfreitas_os_contador') || '0') + 1;
+      }
       localStorage.setItem('empfreitas_os_contador', String(proximoNum));
+
 
       const finalOS = {
         ...state,
@@ -153,6 +161,8 @@ export default function RevisaoAssinaturas() {
         status: statusFinal,
         numero_os: proximoNum,
         data_fechamento: new Date().toISOString(),
+        // Retorno = mesma quilometragem da ida (automático)
+        quilometragem_retorno: state.quilometragem_rodada || 0,
       };
 
       // Gera o PDF final — agora COM as assinaturas embutidas
@@ -298,7 +308,7 @@ export default function RevisaoAssinaturas() {
               <p style={{ fontSize: '0.72rem', color: 'var(--color-text-dim)', marginTop: 2 }}>
                 {assinaturasCompletas
                   ? 'Tudo pronto! Clique para gerar o PDF com as assinaturas.'
-                  : 'Disponivel apos ambas as assinaturas.'}
+                  : 'Disponível após ambas as assinaturas.'}
               </p>
             </div>
           </div>

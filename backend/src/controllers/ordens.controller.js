@@ -1,6 +1,16 @@
 const { v4: uuidv4 } = require('uuid');
 const ordensService = require('../services/ordens.service');
 
+// GET /api/ordens/proximo-numero
+async function proximoNumero(req, res, next) {
+  try {
+    const proximo = await ordensService.buscarProximoNumeroOS();
+    res.json({ success: true, data: { proximo_numero: proximo } });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // GET /api/ordens
 async function listar(req, res, next) {
   try {
@@ -90,4 +100,4 @@ async function deletar(req, res, next) {
   }
 }
 
-module.exports = { listar, buscarPorId, criar, atualizar, finalizar, deletar };
+module.exports = { listar, buscarPorId, criar, atualizar, finalizar, deletar, proximoNumero };

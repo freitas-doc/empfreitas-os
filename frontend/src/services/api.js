@@ -27,12 +27,25 @@ export const api = {
     login: (credentials) => request('POST', '/auth/login', credentials),
   },
   admin: {
-    stats: () => request('GET', '/admin/stats'),
+    stats: (filtros = {}) => {
+      const params = new URLSearchParams(filtros).toString();
+      return request('GET', `/admin/stats${params ? `?${params}` : ''}`);
+    },
+    graficos: (filtros = {}) => {
+      const params = new URLSearchParams(filtros).toString();
+      return request('GET', `/admin/graficos${params ? `?${params}` : ''}`);
+    },
     ordens: () => request('GET', '/admin/ordens'),
     excluirOrdem: (id) => request('DELETE', `/admin/ordens/${id}`),
     listarUsuarios: () => request('GET', '/admin/usuarios'),
     criarUsuario: (dados) => request('POST', '/admin/usuarios', dados),
     deletarUsuario: (id) => request('DELETE', `/admin/usuarios/${id}`),
+    // Orçamentos
+    listarOrcamentos: () => request('GET', '/admin/orcamentos'),
+    buscarOrcamento: (id) => request('GET', `/admin/orcamentos/${id}`),
+    criarOrcamento: (dados) => request('POST', '/admin/orcamentos', dados),
+    atualizarOrcamento: (id, dados) => request('PUT', `/admin/orcamentos/${id}`, dados),
+    deletarOrcamento: (id) => request('DELETE', `/admin/orcamentos/${id}`),
   },
   ordens: {
     listar: (filtros = {}) => {
@@ -44,6 +57,8 @@ export const api = {
     atualizar: (id, dados) => request('PUT', `/ordens/${id}`, dados),
     finalizar: (id) => request('POST', `/ordens/${id}/finalizar`),
     deletar: (id) => request('DELETE', `/ordens/${id}`),
+    proximoNumero: () => request('GET', '/ordens/proximo-numero'),
   },
   health: () => request('GET', '/health'),
 };
+

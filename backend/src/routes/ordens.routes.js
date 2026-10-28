@@ -4,6 +4,7 @@ const ctrl = require('../controllers/ordens.controller');
 const router = Router();
 
 // CRUD principal
+router.get('/proximo-numero', ctrl.proximoNumero); // ← deve ficar ANTES de /:id
 router.get('/', ctrl.listar);
 router.get('/:id', ctrl.buscarPorId);
 router.post('/', ctrl.criar);
@@ -14,3 +15,4 @@ router.delete('/:id', ctrl.deletar);
 router.post('/:id/finalizar', ctrl.finalizar);
 
 module.exports = router;
+
