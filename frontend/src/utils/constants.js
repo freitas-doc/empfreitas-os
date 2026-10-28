@@ -16,19 +16,25 @@ export const STATUS_OS = {
   FINALIZADA: 'FINALIZADA',
 };
 
-// Categorias de foto
 export const CATEGORIA_FOTO = {
   HORIMETRO: 'HORIMETRO',
   PLACA_SERIE: 'PLACA_SERIE',
+  FOTO_CONTROLADOR: 'FOTO_CONTROLADOR',
   ANTES: 'ANTES',
   DEPOIS: 'DEPOIS',
   PECA: 'PECA',
   OUTRO: 'OUTRO',
 };
 
-// Fotos obrigatórias antes de avançar
-export const FOTOS_OBRIGATORIAS = [
+// Fotos obrigatórias para Empilhadeira
+export const FOTOS_OBRIGATORIAS_EMPILHADEIRA = [
   { categoria: 'HORIMETRO',   label: 'Horímetro',         icon: '⏱️' },
+  { categoria: 'PLACA_SERIE', label: 'Placa / Nº de Série', icon: '🔢' },
+];
+
+// Fotos obrigatórias para Controlador
+export const FOTOS_OBRIGATORIAS_CONTROLADOR = [
+  { categoria: 'FOTO_CONTROLADOR', label: 'Foto do Controlador', icon: '🎛️' },
   { categoria: 'PLACA_SERIE', label: 'Placa / Nº de Série', icon: '🔢' },
 ];
 

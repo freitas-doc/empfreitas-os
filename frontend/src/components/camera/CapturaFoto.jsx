@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useOSForm } from '../../context/OSFormContext.jsx';
-import { CATEGORIA_FOTO, FOTOS_OBRIGATORIAS } from '../../utils/constants.js';
+import { CATEGORIA_FOTO, FOTOS_OBRIGATORIAS_EMPILHADEIRA, FOTOS_OBRIGATORIAS_CONTROLADOR } from '../../utils/constants.js';
 import { v4 as uuidv4 } from 'uuid';
 
 // Categorias livres (não obrigatórias) disponíveis no seletor
@@ -98,9 +98,13 @@ export default function CapturaFoto() {
   const [categoria, setCategoria] = useState(CATEGORIA_FOTO.ANTES);
   const [comprimindo, setComprimindo] = useState(false);
 
+  const fotosObrigatorias = state.tipo_os === 'CONTROLADOR' 
+    ? FOTOS_OBRIGATORIAS_CONTROLADOR 
+    : FOTOS_OBRIGATORIAS_EMPILHADEIRA;
+
   const adicionarFoto = (cat, base64) => {
     // Para fotos obrigatórias: substitui se já existir (só 1 por categoria)
-    const ehObrigatoria = FOTOS_OBRIGATORIAS.some(f => f.categoria === cat);
+    const ehObrigatoria = fotosObrigatorias.some(f => f.categoria === cat);
     if (ehObrigatoria) {
       const fotoExistente = state.fotos.find(f => f.categoria === cat);
       if (fotoExistente) {
@@ -134,7 +138,7 @@ export default function CapturaFoto() {
           <span>⚠️</span> Fotos obrigatórias — necessárias para finalizar a OS
         </p>
         <div style={{ display: 'flex', gap: 10 }}>
-          {FOTOS_OBRIGATORIAS.map(config => (
+          {fotosObrigatorias.map(config => (
             <FotoObrigatoria
               key={config.categoria}
               config={config}

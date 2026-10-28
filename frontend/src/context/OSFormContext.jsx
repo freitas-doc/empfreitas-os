@@ -33,13 +33,21 @@ const estadoInicial = {
   responsavel_tecnico_nome: '',
   responsavel_tecnico_cpf: '',
   // Controle interno
-  data_inicio_servico: '',
-  data_termino_servico: '',
   data_abertura: null,
   ultima_sincronizacao: null,
+  // Sessões de trabalho (multi-dia/multi-sessão)
+  // Cada sessão: { id, inicio, termino }
+  sessoes_trabalho: [],
+  // Campos legados (calculados/derivados das sessões — mantidos para compatibilidade com PDF e backend)
+  data_inicio_servico: '',   // = início da 1ª sessão
+  data_termino_servico: '',  // = término da última sessão
   // Deslocamento — leituras do odômetro
   km_odometro_saida: '',    // KM no painel antes de sair
   km_odometro_chegada: '',  // KM no painel ao chegar no cliente
+  // Campos calculados — persistidos no backend
+  horas_trabalhadas: 0,          // calculado pela soma das sessões
+  quilometragem_rodada: 0,       // calculado por DeslocamentoKm
+  quilometragem_retorno: 0,      // automático: igual à quilometragem_rodada
 };
 
 // ── Reducer ───────────────────────────────────────────────
@@ -87,6 +95,39 @@ function osFormReducer(state, action) {
         ...state,
         pecas_pendentes: state.pecas_pendentes.map(p => p.id === action.id ? { ...p, ...action.dados } : p)
       };
+
+    // -- Sessões de Trabalho (multi-dia) --
+    case 'ADICIONAR_SESSAO': {
+      const novaSessao = { id: uuidv4(), inicio: '', termino: '' };
+      const novasSessoes = [...state.sessoes_trabalho, novaSessao];
+      return { ...state, sessoes_trabalho: novasSessoes };
+    }
+    case 'REMOVER_SESSAO': {
+      const novasSessoes = state.sessoes_trabalho.filter(s => s.id !== action.id);
+      // Recalcula campos legados
+      const primeira = novasSessoes[0];
+      const ultima   = novasSessoes[novasSessoes.length - 1];
+      return {
+        ...state,
+        sessoes_trabalho: novasSessoes,
+        data_inicio_servico:  primeira?.inicio  || '',
+        data_termino_servico: ultima?.termino   || '',
+      };
+    }
+    case 'ATUALIZAR_SESSAO': {
+      const novasSessoes = state.sessoes_trabalho.map(s =>
+        s.id === action.id ? { ...s, ...action.dados } : s
+      );
+      // Recalcula campos legados (compatibilidade com PDF e backend)
+      const primeira = novasSessoes[0];
+      const ultima   = novasSessoes[novasSessoes.length - 1];
+      return {
+        ...state,
+        sessoes_trabalho: novasSessoes,
+        data_inicio_servico:  primeira?.inicio  || '',
+        data_termino_servico: ultima?.termino   || '',
+      };
+    }
 
     case 'ADICIONAR_FOTO':
       return { ...state, fotos: [...state.fotos, action.payload] };

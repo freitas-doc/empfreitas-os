@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useOSForm } from '../../context/OSFormContext.jsx';
 
 const styleInput = {
@@ -59,7 +59,15 @@ export default function DeslocamentoKm() {
   const chegada = parseFloat(state.km_odometro_chegada) || 0;
 
   const kmPercorrido = chegada > saida ? chegada - saida : null;
+  const kmTotal = kmPercorrido !== null ? kmPercorrido * 2 : null;
   const leituraInvalida = chegada > 0 && saida > 0 && chegada < saida;
+
+  // Persiste o km calculado no campo usado pelo backend
+  useEffect(() => {
+    const km = kmPercorrido !== null ? kmPercorrido : 0;
+    atualizarCampo('quilometragem_rodada', km);
+    atualizarCampo('quilometragem_retorno', km);
+  }, [kmPercorrido]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section className="card" style={{ marginBottom: 24, borderColor: 'var(--color-accent)', borderWidth: 1, borderStyle: 'solid' }}>
@@ -76,15 +84,15 @@ export default function DeslocamentoKm() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
         <CampoOdometro
           id="km-odometro-saida"
-          label="Saída"
-          sublabel="KM no painel ao sair do depósito"
+          label="Saída da Empresa"
+          sublabel="KM no painel ao sair da empresa"
           icon="🏁"
           value={state.km_odometro_saida}
           onChange={(e) => atualizarCampo('km_odometro_saida', e.target.value)}
         />
         <CampoOdometro
           id="km-odometro-chegada"
-          label="Chegada no cliente"
+          label="Chegada no Cliente"
           sublabel="KM no painel ao chegar no cliente"
           icon="📍"
           value={state.km_odometro_chegada}
@@ -93,6 +101,39 @@ export default function DeslocamentoKm() {
       </div>
 
       {/* Resultado */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+        {/* Ida */}
+        <div style={{
+          background: 'rgba(245,158,11,0.06)',
+          border: '1px solid rgba(245,158,11,0.18)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '10px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+        }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--color-text-dim)', fontWeight: 600 }}>🚗 IDA</span>
+          <span style={{ fontSize: '1rem', fontWeight: 800, color: kmPercorrido !== null ? 'var(--color-accent)' : 'var(--color-text-dim)' }}>
+            {kmPercorrido !== null ? `${kmPercorrido} km` : '—'}
+          </span>
+        </div>
+        {/* Volta */}
+        <div style={{
+          background: 'rgba(245,158,11,0.06)',
+          border: '1px solid rgba(245,158,11,0.18)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '10px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+        }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--color-text-dim)', fontWeight: 600 }}>↩️ VOLTA</span>
+          <span style={{ fontSize: '1rem', fontWeight: 800, color: kmPercorrido !== null ? 'var(--color-accent)' : 'var(--color-text-dim)' }}>
+            {kmPercorrido !== null ? `${kmPercorrido} km` : '—'}
+          </span>
+        </div>
+      </div>
+
       <div style={{
         background: 'rgba(245,158,11,0.07)',
         border: '1px solid rgba(245,158,11,0.22)',
@@ -103,10 +144,10 @@ export default function DeslocamentoKm() {
         alignItems: 'center',
       }}>
         <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
-          Total percorrido (saída → cliente)
+          Total percorrido (ida + volta)
         </span>
-        <span style={{ fontSize: '1.1rem', fontWeight: 700, color: kmPercorrido !== null ? 'var(--color-accent)' : 'var(--color-text-dim)' }}>
-          {kmPercorrido !== null ? `${kmPercorrido} km` : '—'}
+        <span style={{ fontSize: '1.1rem', fontWeight: 700, color: kmTotal !== null ? 'var(--color-accent)' : 'var(--color-text-dim)' }}>
+          {kmTotal !== null ? `${kmTotal} km` : '—'}
         </span>
       </div>
 

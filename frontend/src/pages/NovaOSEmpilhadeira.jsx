@@ -5,7 +5,7 @@ import BottomNav from '../components/layout/BottomNav.jsx';
 import { useOSForm } from '../context/OSFormContext.jsx';
 import { indexedDbService } from '../services/indexedDbService.js';
 import useAutosave from '../hooks/useAutosave.js';
-import { FOTOS_OBRIGATORIAS } from '../utils/constants.js';
+import { FOTOS_OBRIGATORIAS_EMPILHADEIRA } from '../utils/constants.js';
 
 import DadosCliente from '../components/form/DadosCliente.jsx';
 import DadosEquipamento from '../components/form/DadosEquipamento.jsx';
@@ -37,8 +37,17 @@ export default function NovaOSEmpilhadeira() {
       alert("Por favor, preencha o 'Nome / Razão Social' do Cliente e o 'Modelo' do Equipamento antes de avançar.");
       return;
     }
+    // Validação de descrição do serviço (obrigatório)
+    if (isCorretiva && !state.servico_executado?.trim()) {
+      alert('⚠️ Descrição obrigatória!\n\nPreencha o campo "Serviço Executado" (o que o técnico fez) antes de avançar para as assinaturas.');
+      return;
+    }
+    if (!isCorretiva && !state.observacoes?.trim()) {
+      alert('⚠️ Descrição obrigatória!\n\nPreencha o campo "Observações Gerais" descrevendo o que foi executado na manutenção preventiva.');
+      return;
+    }
     // Validação de fotos obrigatórias
-    const fotosFaltando = FOTOS_OBRIGATORIAS.filter(
+    const fotosFaltando = FOTOS_OBRIGATORIAS_EMPILHADEIRA.filter(
       f => !state.fotos.some(foto => foto.categoria === f.categoria)
     );
     if (fotosFaltando.length > 0) {

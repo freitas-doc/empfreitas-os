@@ -215,28 +215,41 @@ export async function gerarPdfOS(state) {
   Y = secao('EQUIPAMENTO', Y);
   hrz(Y); Y -= 16;
 
+  // Linha 1: Modelo (com limite de caracteres para evitar sobreposição)
+  const modeloTrunc    = sanitize(String(state.equipamento_modelo    || 'N/A')).slice(0, 28);
+  const serieTrunc     = sanitize(String(state.equipamento_serie     || 'N/A')).slice(0, 20);
+  const horimetroTrunc = sanitize(String(state.equipamento_horimetro || 'N/A')).slice(0, 14);
   td('Modelo:', ML, Y, 8, bold, COR_MUTED);
-  td(String(state.equipamento_modelo || 'N/A'), ML + 42, Y, 8, bold, COR_TEXTO);
+  td(modeloTrunc,    ML + 42, Y, 8, bold, COR_TEXTO);
   td('S\u00e9rie:', 210, Y, 8, bold, COR_MUTED);
-  td(String(state.equipamento_serie || 'N/A'), 240, Y, 8, bold, COR_TEXTO);
+  td(serieTrunc,     240, Y, 8, bold, COR_TEXTO);
   td('Hor\u00edmetro:', 370, Y, 8, bold, COR_MUTED);
-  td(String(state.equipamento_horimetro || 'N/A'), 424, Y, 8, bold, COR_TEXTO);
+  td(horimetroTrunc, 424, Y, 8, bold, COR_TEXTO);
   Y -= 16;
 
+  // Linha 2: Início do serviço (linha separada para evitar sobreposição)
   td('In\u00edcio do Serv.:', ML, Y, 8, bold, COR_MUTED);
-  td(state.data_inicio_servico ? formatarDataHora(state.data_inicio_servico) : 'N/A', ML + 72, Y, 8, bold, COR_TEXTO);
-  td('T\u00e9rmino:', 280, Y, 8, bold, COR_MUTED);
-  td(state.data_termino_servico ? formatarDataHora(state.data_termino_servico) : 'N/A', 320, Y, 8, bold, COR_TEXTO);
-  Y -= 16;
+  td(state.data_inicio_servico ? formatarDataHora(state.data_inicio_servico) : 'N/A', ML + 76, Y, 8, bold, COR_TEXTO);
+  Y -= 14;
 
-  // Deslocamento
+  // Linha 3: Término do serviço
+  td('T\u00e9rmino:', ML, Y, 8, bold, COR_MUTED);
+  td(state.data_termino_servico ? formatarDataHora(state.data_termino_servico) : 'N/A', ML + 42, Y, 8, bold, COR_TEXTO);
+  Y -= 14;
+
+  // Linha 4: Deslocamento (usa wrap para evitar overflow)
   const odSaida    = parseFloat(state.km_odometro_saida)   || 0;
   const odChegada  = parseFloat(state.km_odometro_chegada) || 0;
-  const kmPercorrido = odChegada > odSaida ? odChegada - odSaida : 0;
+  const kmIda      = odChegada > odSaida ? odChegada - odSaida : 0;
+  const kmVolta    = kmIda; // retorno = mesma distância da ida
+  const kmTotalKm  = kmIda + kmVolta;
+
   if (odSaida > 0 || odChegada > 0) {
+    Y = garantirEspaco(Y, 18);
     td('Deslocamento:', ML, Y, 8, bold, COR_MUTED);
-    td(`Sa\u00edda: ${odSaida} km  /  Chegada: ${odChegada} km  >  Percorrido: ${kmPercorrido} km`, ML + 72, Y, 8, bold, COR_TEXTO);
-    Y -= 16;
+    const textoKm = `Empresa → Cliente (Sa\u00edda: ${odSaida} km | Chegada: ${odChegada} km | Ida: ${kmIda} km)  |  Retorno: ${kmVolta} km  |  Total: ${kmTotalKm} km`;
+    Y = wrap(textoKm, ML + 72, Y, 8, bold, COR_TEXTO, CW - 72);
+    Y += 4; // ajuste fino pós-wrap
   }
   Y -= 10;
 
@@ -279,6 +292,15 @@ export async function gerarPdfOS(state) {
       if (i % 2 === 1) Y -= 16;
     }
     if (itens.length % 2 !== 0) Y -= 16;
+    Y -= 10;
+
+    // ── Descrição do serviço preventivo ───────────────────
+    Y = garantirEspaco(Y, 50);
+    Y = secao('SERVI\u00c7O EXECUTADO - Preventiva', Y);
+    hrz(Y); Y -= 16;
+
+    td('Servi\u00e7o / Atividades Realizadas:', ML, Y, 8, bold, COR_MUTED); Y -= 14;
+    Y = wrap(state.observacoes || 'Nenhuma descri\u00e7\u00e3o informada.', ML, Y, 8, regular, COR_TEXTO, CW);
     Y -= 10;
   }
 
@@ -369,6 +391,7 @@ export async function gerarPdfOS(state) {
 
     const LABEL_CATEGORIA = {
       HORIMETRO:   'Hor\u00edmetro',
+      FOTO_CONTROLADOR: 'Foto do Controlador',
       PLACA_SERIE: 'Placa / N\u00ba de S\u00e9rie',
       ANTES:       'Antes',
       DEPOIS:      'Depois',

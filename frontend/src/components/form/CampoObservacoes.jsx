@@ -8,7 +8,7 @@ export default function CampoObservacoes() {
   return (
     <section className="card" style={{ marginBottom: 24 }}>
       <h2 className="title-sm" style={{ marginBottom: 16 }}>
-        {isCorretiva ? 'Detalhes do Serviço' : 'Observações Gerais'}
+        {isCorretiva ? 'Detalhes do Serviço' : 'Serviço Executado'}
       </h2>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -38,12 +38,18 @@ export default function CampoObservacoes() {
         )}
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: 4 }}>Observações Extras</label>
+          <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: 4 }}>
+            {isCorretiva ? 'Observações Extras' : 'Serviço / Atividades Realizadas *'}
+          </label>
           <textarea
             value={state.observacoes}
             onChange={(e) => atualizarCampo('observacoes', e.target.value)}
-            placeholder="Qualquer nota adicional sobre a manutenção..."
-            rows={3}
+            placeholder={
+              isCorretiva
+                ? 'Qualquer nota adicional sobre a manutenção...'
+                : 'Descreva todas as atividades realizadas na manutenção preventiva (lubrificações, ajustes, limpezas, verificações etc.)...'
+            }
+            rows={isCorretiva ? 3 : 5}
             style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', background: 'var(--color-bg)', color: '#fff', resize: 'vertical' }}
           />
         </div>
