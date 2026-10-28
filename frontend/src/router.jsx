@@ -11,6 +11,7 @@ import Login from './pages/Login.jsx';
 import ProtectedRoute from './components/layout/ProtectedRoute.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import AdminUsuarios from './pages/AdminUsuarios.jsx';
+import SincronizarOS from './pages/SincronizarOS.jsx';
 
 export const router = createBrowserRouter([
   {
@@ -66,6 +67,10 @@ export const router = createBrowserRouter([
       {
         path: '/rascunhos',
         element: <Rascunhos />
+      },
+      {
+        path: '/sincronizar',
+        element: <SincronizarOS />
       }
     ]
   }
